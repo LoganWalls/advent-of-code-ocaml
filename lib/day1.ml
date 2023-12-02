@@ -3,75 +3,64 @@ open! Base
 
 module M = struct
   (* Type to parse the input into *)
-  type matched_pattern = Digit of int | Alpha of int
+  type matched_pattern =
+    | Digit of {i: int; value: int}
+    | Alpha of {i: int; value: int}
+  let matched_i m = match m with Digit {i; _} -> i | Alpha {i; _} -> i
+  let matched_value m = match m with Digit { value; _} -> value | Alpha { value; _} -> value
 
-  type t = ((int * int) * matched_pattern) list list
+  type t = matched_pattern list list
 
   (* Parse the input to type t, invoked for both parts *)
   let parse _inputs =
     let preprocess s =
-      let patterns =
-        [ ("1", Digit 1)
-        ; ("2", Digit 2)
-        ; ("3", Digit 3)
-        ; ("4", Digit 4)
-        ; ("5", Digit 5)
-        ; ("6", Digit 6)
-        ; ("7", Digit 7)
-        ; ("8", Digit 8)
-        ; ("9", Digit 9)
-        ; ("one", Alpha 1)
-        ; ("two", Alpha 2)
-        ; ("three", Alpha 3)
-        ; ("four", Alpha 4)
-        ; ("five", Alpha 5)
-        ; ("six", Alpha 6)
-        ; ("seven", Alpha 7)
-        ; ("eight", Alpha 8)
-        ; ("nine", Alpha 9) ]
-      and extrema inds : (int * int) option =
-        Option.both
-          (List.min_elt ~compare:min inds)
-          (List.max_elt ~compare:max inds)
+      let digit_matches =
+        s |> String.to_list
+        |> List.filter_mapi ~f:(fun i c ->
+               c |> Char.get_digit
+               |> Option.map ~f:(fun value -> Digit {i; value}) )
+      and alpha_matches =
+        let patterns =
+          [ ("one", 1)
+          ; ("two", 2)
+          ; ("three", 3)
+          ; ("four", 4)
+          ; ("five", 5)
+          ; ("six", 6)
+          ; ("seven", 7)
+          ; ("eight", 8)
+          ; ("nine", 9) ]
+        in
+        patterns
+        |> List.map ~f:(fun (pattern, value) ->
+               String.substr_index_all ~may_overlap:false ~pattern s
+               |> List.map ~f:(fun i -> Alpha {i; value}) )
+        |> List.concat
       in
-      patterns
-      |> List.filter_map ~f:(fun (p, v) ->
-             String.substr_index_all ~may_overlap:false ~pattern:p s
-             |> extrema
-             |> Option.map ~f:(fun x -> (x, v)) )
+      digit_matches @ alpha_matches
     in
     String.split_lines _inputs |> List.map ~f:preprocess
 
   let reduce_extrema =
-    let f (prev_low, prev_high) ((low, high), v) =
-      let lowest_i, _ = prev_low and highest_i, _ = prev_high in
-      let l = if low < lowest_i then (low, v) else prev_low
-      and h = if high > highest_i then (high, v) else prev_high in
+    let f (low, high) v =
+      let l = if matched_i v < matched_i low then v else low
+      and h = if matched_i v > matched_i high then v else high in
       (l, h)
     in
-    List.fold ~init:((Int.max_value, 0), (Int.min_value, 0)) ~f
-
-  let print_lists i =
-    let print_items j =
-      let print d = Stdio.printf "%d " d |> ignore in
-      List.iter ~f:print j
-    in
-    List.iter ~f:print_items i ;
-    Stdio.print_string "\n|\n" ;
-    i
+    List.fold ~init:(Digit {i = Int.max_value; value = 0}, Digit {i = Int.min_value; value = 0}) ~f
 
   (* Run part 1 with parsed inputs *)
   let part1 matches =
     let total =
       matches
       |> List.fold ~init:0 ~f:(fun total x ->
-             let (_, first), (_, last) =
+             let (first, last) =
                x
-               |> List.filter_map ~f:(fun (inds, v) ->
-                      match v with Digit d -> Some (inds, d) | _ -> None )
+          |> List.filter ~f:(fun v -> match v with Digit _ -> true | _ -> false)
                |> reduce_extrema
              in
-             (first * 10) + last + total )
+             (* Stdio.printf "%d + %d\n" (matched_value first) (matched_value last) ; *)
+             matched_value first * 10 + matched_value last + total )
     in
     Stdio.printf "%d" total ; ()
 
@@ -80,15 +69,12 @@ module M = struct
     let total =
       matches
       |> List.fold ~init:0 ~f:(fun total x ->
-             let (_, first), (_, last) =
-               x
-               |> List.filter_map ~f:(fun (inds, v) ->
-                      match v with Digit d | Alpha d -> Some (inds, d) )
-               |> reduce_extrema
+             let (first, last) = reduce_extrema x
              in
-             (first * 10) + last + total )
+             (* Stdio.printf "%d + %d\n" (matched_value first) (matched_value last) ; *)
+             matched_value first * 10 + matched_value last + total )
     in
-    Stdio.printf "%d" total ; ()
+    Stdio.printf "%d\n" total ; ()
 end
 
 include M
