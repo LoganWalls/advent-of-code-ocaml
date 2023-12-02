@@ -3,53 +3,92 @@ open! Base
 
 module M = struct
   (* Type to parse the input into *)
-  type t = Day1_lexer.number list list
+  type matched_pattern = Digit of int | Alpha of int
+
+  type t = ((int * int) * matched_pattern) list list
 
   (* Parse the input to type t, invoked for both parts *)
   let parse _inputs =
-    let tokenize lexbuf =
-      let rec next_token tokens =
-        match Day1_lexer.token lexbuf with
-        | Some t -> next_token (t :: tokens)
-        | None -> tokens
+    let preprocess s =
+      let patterns =
+        [ ("1", Digit 1)
+        ; ("2", Digit 2)
+        ; ("3", Digit 3)
+        ; ("4", Digit 4)
+        ; ("5", Digit 5)
+        ; ("6", Digit 6)
+        ; ("7", Digit 7)
+        ; ("8", Digit 8)
+        ; ("9", Digit 9)
+        ; ("one", Alpha 1)
+        ; ("two", Alpha 2)
+        ; ("three", Alpha 3)
+        ; ("four", Alpha 4)
+        ; ("five", Alpha 5)
+        ; ("six", Alpha 6)
+        ; ("seven", Alpha 7)
+        ; ("eight", Alpha 8)
+        ; ("nine", Alpha 9) ]
+      and extrema inds : (int * int) option =
+        Option.both
+          (List.min_elt ~compare:min inds)
+          (List.max_elt ~compare:max inds)
       in
-      next_token [] |> List.rev
+      patterns
+      |> List.filter_map ~f:(fun (p, v) ->
+             String.substr_index_all ~may_overlap:false ~pattern:p s
+             |> extrema
+             |> Option.map ~f:(fun x -> (x, v)) )
     in
-    String.split_lines _inputs
-    |> List.map ~f:(fun s -> Lexing.from_string s |> tokenize)
+    String.split_lines _inputs |> List.map ~f:preprocess
 
-  let print_total lines =
-    let digit_sum l = (List.hd_exn l * 10) + List.last_exn l in
-    lines
-    |> List.fold ~init:0 ~f:(fun a c -> a + digit_sum c)
-    |> Stdio.printf "%d\n" |> ignore
+  let reduce_extrema =
+    let f (prev_low, prev_high) ((low, high), v) =
+      let lowest_i, _ = prev_low and highest_i, _ = prev_high in
+      let l = if low < lowest_i then (low, v) else prev_low
+      and h = if high > highest_i then (high, v) else prev_high in
+      (l, h)
+    in
+    List.fold ~init:((Int.max_value, 0), (Int.min_value, 0)) ~f
 
-  let print_list i =
+  let print_lists i =
     let print_items j =
-      let print d = Stdio.printf "%d  " d |> ignore in
+      let print d = Stdio.printf "%d " d |> ignore in
       List.iter ~f:print j
     in
-    let () = List.iter ~f:print_items i
-    and _ = Stdio.print_string "\n|\n\n" in
+    List.iter ~f:print_items i ;
+    Stdio.print_string "\n|\n" ;
     i
 
   (* Run part 1 with parsed inputs *)
-  let part1 lines =
-    lines
-    |> List.map
-         ~f:
-           (List.filter_map ~f:(fun n ->
-                match n with Day1_lexer.Digit d -> Some d | _ -> None ) )
-    |> print_total
+  let part1 matches =
+    let total =
+      matches
+      |> List.fold ~init:0 ~f:(fun total x ->
+             let (_, first), (_, last) =
+               x
+               |> List.filter_map ~f:(fun (inds, v) ->
+                      match v with Digit d -> Some (inds, d) | _ -> None )
+               |> reduce_extrema
+             in
+             (first * 10) + last + total )
+    in
+    Stdio.printf "%d" total ; ()
 
   (* Run part 2 with parsed inputs *)
-  let part2 lines =
-    lines
-    |> List.map
-         ~f:
-           (List.map ~f:(fun n ->
-                match n with Day1_lexer.Digit d | Day1_lexer.Word d -> d ) )
-    |> print_total
+  let part2 matches =
+    let total =
+      matches
+      |> List.fold ~init:0 ~f:(fun total x ->
+             let (_, first), (_, last) =
+               x
+               |> List.filter_map ~f:(fun (inds, v) ->
+                      match v with Digit d | Alpha d -> Some (inds, d) )
+               |> reduce_extrema
+             in
+             (first * 10) + last + total )
+    in
+    Stdio.printf "%d" total ; ()
 end
 
 include M

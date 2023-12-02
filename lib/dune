@@ -4,9 +4,3 @@
  (libraries unix core)
  (preprocess
   (pps ppx_expect)))
-
-(rule
- (target day1_lexer.ml)
- (deps   day1_lexer.mll)
- (action (chdir %{workspace_root}/lib
-          (run %{bin:ocamllex} -q -o %{target} %{deps}))))
