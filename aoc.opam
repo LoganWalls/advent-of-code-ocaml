@@ -2,6 +2,7 @@
 opam-version: "2.0"
 depends: [
   "dune" {>= "2.7"}
+  "core"
   "cohttp-lwt-unix"
   "lwt_ssl"
   "ppx_expect"
