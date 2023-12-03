@@ -8,10 +8,10 @@ module M = struct
   let parse _inputs = ()
 
   (* Run part 1 with parsed inputs *)
-  let part1 _ = ()
+  let part1 _ = ""
 
   (* Run part 2 with parsed inputs *)
-  let part2 _ = ()
+  let part2 _ = ""
 end
 
 include M
@@ -21,4 +21,10 @@ include Day.Make (M)
 let example = ""
 
 (* Expect test for example input *)
-let%expect_test _ = run example ; [%expect {| |}]
+let%expect_test _ =
+  run example;
+  [%expect {|
+  Part 1:
+  Part 2: |}]
+;;
+

@@ -2,10 +2,11 @@
 opam-version: "2.0"
 depends: [
   "dune" {>= "2.7"}
-  "core"
+  "re2"
   "cohttp-lwt-unix"
   "lwt_ssl"
   "ppx_expect"
+  "ppx_deriving"
   "odoc" {with-doc}
 ]
 build: [

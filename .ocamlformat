@@ -1,6 +1,2 @@
-profile = ocamlformat
-break-cases = fit
-margin = 77
-parse-docstrings = true
-wrap-comments = true
-
+profile = janestreet
+version = 0.26.1
